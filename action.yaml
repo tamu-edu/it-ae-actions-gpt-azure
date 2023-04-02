@@ -1,0 +1,121 @@
+name: GPT Generate (Azure)
+description: GPT generation using Azure with OIDC authentication
+inputs:
+  api-base-url:
+    description: The OpenAI base URL of the API endpoint.
+    required: true
+  azure-client-id:
+    description: |
+      The client ID of the service principal that will be used for OIDC 
+      authentication.
+    required: true
+  azure-subscription-id:
+    description: |
+      The ID of the subscription that will be used for OIDC authentication.
+    required: true
+  azure-tenant-id:
+    description: The ID of the tenant that will be used for OIDC authentication.
+    required: false
+    default: "68f381e3-46da-47b9-ba57-6f322b8f0da1"
+  frequency_penalty:
+    description: |
+      A value between 0 and 2.
+      Reduce the chance of repeating a token proportionally based on how often it 
+      has appeared in the text so far. This decreases the likelihood of repeating 
+      the exact same text in a response.
+    required: false
+    default: "0"
+  gpt-model-deployment-name:
+    description: |
+      The name of the model deployment as specified during creation in Azure.
+    required: true
+  max_tokens: 
+    description: |
+      Set a limit on the number of tokens per model response. The API supports a 
+      maximum of 4000 tokens shared between the prompt (including system message, 
+      examples, message history, and user query) and the model's response. 
+      One token is roughly 4 characters for typical English text.
+    required: false
+    default: "800"
+  presence_penalty:
+    description: |
+      A value between 0 and 2.
+      Reduce the chance of repeating any token that has appeared in the text at 
+      all so far. This increases the likelihood of introducing new topics in a 
+      response.
+    required: false
+    default: "0"
+  prompt:
+    description: The prompt provided to GPT
+    required: true
+  temperature:
+    description: |
+      A value between 0 and 1. 
+      Controls randomness. Lowering the temperature means that the model will 
+      produce more repetitive and deterministic responses.  Increasing the 
+      temperature will result in more unexpected or creative responses.  Try 
+      adjusting temperature or Top P but not both.
+    required: false
+    default: "1"
+  top_probabilities:
+    description: |
+      A value between 0 and 2.
+      Similar to temperature, this controls randomness but uses a different method. 
+      Lowering Top P will narrow the model's token selection to likelier tokens. 
+      Increasing Top P will let the model choose from tokens with both high and low 
+      likelihood. Try adjusting temperature or Top P but not both.
+    required: false
+    default: ".5"
+  
+  
+outputs:
+  generated-response:
+    description: The GPT generated response
+    value: ${{ steps.gpt-generated-response.outputs.response }}
+
+runs:
+  using: composite
+  steps:
+    - name: Checkout tools repo
+      uses: actions/checkout@v3
+      with:
+        repository: tamu-edu/it-ae-actions-gpt-azure
+        path: gpt-azure
+
+    - uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - id: install-pip-requirements
+      shell: bash
+      working-directory: ./gpt-azure/python
+      run: pip install -r ./requirements.txt
+
+    - uses: azure/login@v1
+      with:
+        client-id: ${{ inputs.azure-client-id }}
+        tenant-id: ${{ inputs.azure-tenant-id }}
+        subscription-id: ${{ inputs.azure-subscription-id }}
+
+    - id: gpt-generated-response
+      shell: bash
+      working-directory: ./gpt-azure/python
+      env:
+        API_BASE_URL: ${{ inputs.api-base-url }}
+        FREQUENCY_PENALTY: ${{ inputs.frequency_penalty }}
+        MAX_TOKENS: ${{ inputs.max_tokens }}
+        MODEL_DEPLOYMENT_NAME: ${{ inputs.gpt-model-deployment-name }}
+        PRESENCE_PENALTY: ${{ inputs.presence_penalty }}
+        PROMPT_TEXT: ${{ inputs.prompt }}
+        TEMPERATURE: ${{ inputs.temperature }}
+        TOP_P: ${{ inputs.top_probabilities }}
+      run: |
+        echo "response<<EOF" >> $GITHUB_OUTPUT
+        python ./gpt_generate.py >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+
+    - id: show-generated-response
+      shell: bash
+      run: |
+        Response:
+        ${{ steps.gpt-generated-response.outputs.response }}
