@@ -117,5 +117,5 @@ runs:
     - id: show-generated-response
       shell: bash
       run: |
-        Response:
-        ${{ steps.gpt-generated-response.outputs.response }}
+        echo "Response:"
+        echo "${{ steps.gpt-generated-response.outputs.response }}"
