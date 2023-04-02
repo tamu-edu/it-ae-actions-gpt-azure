@@ -16,7 +16,7 @@ def main():
   response = openai.Completion.create(
     #engine=os.environ['MODEL_DEPLOYMENT_NAME'],
     deployment_id=os.environ['MODEL_DEPLOYMENT_NAME'],
-    prompt=f'{os.environ["PROMPT_TEXT"]}\n',
+    prompt=f'{os.environ["PROMPT_TEXT"]}\n\n',
     temperature=float(os.environ['TEMPERATURE']),
     max_tokens=int(os.environ['MAX_TOKENS']),
     top_p=float(os.environ['TOP_P']),
