@@ -1,2 +1,2 @@
 azure-identity
-openai
+openai==0.28
